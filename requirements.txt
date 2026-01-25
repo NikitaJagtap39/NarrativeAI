@@ -1,0 +1,9 @@
+langchain-community 
+pymupdf
+langchain-huggingface
+sentence-transformers
+langchain-chroma>=0.1.2
+langchain-openai
+langchain-google-genai
+streamlit
+rank_bm25
