@@ -10,8 +10,8 @@ from multi_query import get_multi_query_docs, generate_answer, bm25_rerank
 VECTOR_STORE_ROOT = "chroma_db"
 Path(VECTOR_STORE_ROOT).mkdir(exist_ok=True)
 
-st.set_page_config(page_title="Novel QnA 2026", layout="wide")
-st.title("📚 Novel QnA with Multi-Query RAG")
+st.set_page_config(page_title="Narrative AI", layout="wide")
+st.title("📚 Narrative AI")
 
 # --- Session State Initialization ---
 if "novel_list" not in st.session_state:
@@ -21,7 +21,7 @@ if "novel_list" not in st.session_state:
     ]
 
 # --- File Upload ---
-uploaded_file = st.file_uploader("Upload a novel (PDF)", type=["pdf"])
+uploaded_file = st.file_uploader("Upload a book (PDF)", type=["pdf"])
 if uploaded_file:
     novel_name = Path(uploaded_file.name).stem
     persist_dir = os.path.join(VECTOR_STORE_ROOT, novel_name)
@@ -47,13 +47,13 @@ selected_novel = st.sidebar.selectbox(
 
 # --- QnA Logic ---
 if selected_novel:
-    st.header(f"Querying: {selected_novel}")
-    user_question = st.text_input("Ask about the story:")
+    st.header(f"QnA: {selected_novel}")
+    user_question = st.text_input("Ask about the book:")
 
     persist_dir = os.path.join(VECTOR_STORE_ROOT, selected_novel)
 
     if st.button("Get Answer") and user_question:
-        with st.spinner("Searching through novel..."):
+        with st.spinner("Searching through book..."):
             try:
                 # --------------------------------------------------
                 # Retrieval
