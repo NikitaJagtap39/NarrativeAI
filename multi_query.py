@@ -12,8 +12,10 @@ from dotenv import load_dotenv
 from embedder import embed_novel
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
+from rank_bm25 import BM25Okapi
+from langchain_core.documents import Document
 
-# --- API Keys from Streamlit secrets ---
+# --- API Keys ---
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -45,8 +47,6 @@ class LineListOutputParser(BaseOutputParser[List[str]]):
         return [line.strip() for line in lines if line.strip()]
 
 query_parser = LineListOutputParser()
-
-# --- Multi-query chain ---
 multi_query_gen_chain = multi_query_gen_prompt | query_llm | query_parser
 
 # --- Answer prompt ---
@@ -66,11 +66,11 @@ Answer:
 """)
 
 # =====================================================
-# MULTI-QUERY RETRIEVAL WITH VECTOR SCORES
+# MULTI-QUERY RETRIEVAL
 # =====================================================
-def get_multi_query_docs(user_question: str, persist_dir: str, pdf_path: str = None):
+def get_multi_query_docs(user_question: str, persist_dir: str, pdf_path: str = None, top_k: int = 20):
     """
-    Returns documents with VECTOR similarity scores + generated queries.
+    Returns deduplicated docs with VECTOR similarity scores + generated queries.
     """
 
     embeddings = HuggingFaceEmbeddings(
@@ -90,23 +90,17 @@ def get_multi_query_docs(user_question: str, persist_dir: str, pdf_path: str = N
             embedding_function=embeddings
         )
 
-    # ---- Multi-query generation ----
-    generated_queries = multi_query_gen_chain.invoke(
-        {"question": user_question}
-    )
-
+    # Multi-query generation
+    generated_queries = multi_query_gen_chain.invoke({"question": user_question})
     all_docs = []
 
-    # ---- Retrieve documents WITH similarity score ----
     for q in generated_queries:
-        results = vector_store.similarity_search_with_score(q, k=20)
-
+        results = vector_store.similarity_search_with_score(q, k=top_k)
         for doc, score in results:
-            # store vector similarity score
             doc.metadata["vector_score"] = float(score)
             all_docs.append(doc)
 
-    # Deduplicate documents
+    # Deduplicate
     unique_docs = {}
     for doc in all_docs:
         key = doc.page_content[:200]
@@ -115,44 +109,26 @@ def get_multi_query_docs(user_question: str, persist_dir: str, pdf_path: str = N
 
     return list(unique_docs.values()), generated_queries
 
-
 # =====================================================
 # ANSWER GENERATION
 # =====================================================
 def generate_answer(question: str, docs):
     context = "\n\n".join(doc.page_content for doc in docs[:5])
     chain = answer_prompt | answer_llm
-    response = chain.invoke(
-        {"context": context, "question": question}
-    )
+    response = chain.invoke({"context": context, "question": question})
     return response.content
 
-
 # =====================================================
-# BM25 RERANKING WITH SCORES
+# BM25 RERANKING
 # =====================================================
-from rank_bm25 import BM25Okapi
-from langchain_core.documents import Document
-
 def bm25_rerank(query: str, docs: List[Document]) -> List[Document]:
-    """
-    Rerank documents using BM25 and attach BM25 scores.
-    """
-
     corpus = [doc.page_content for doc in docs]
     tokenized_corpus = [text.split() for text in corpus]
-
     bm25 = BM25Okapi(tokenized_corpus)
-
     tokenized_query = query.split()
     scores = bm25.get_scores(tokenized_query)
 
-    ranked = sorted(
-        zip(scores, docs),
-        key=lambda x: x[0],
-        reverse=True
-    )
-
+    ranked = sorted(zip(scores, docs), key=lambda x: x[0], reverse=True)
     ranked_docs = []
     for score, doc in ranked:
         doc.metadata["bm25_score"] = float(score)
@@ -164,23 +140,33 @@ def bm25_rerank(query: str, docs: List[Document]) -> List[Document]:
 # FASTAPI ENTRY FUNCTION
 # =====================================================
 def ask_question(question: str, persist_dir: str):
-
+    # Step 1: retrieve docs
     docs, generated_queries = get_multi_query_docs(
         user_question=question,
-        persist_dir=persist_dir
+        persist_dir=persist_dir,
+        top_k=20
     )
 
+    # Step 2: rerank with BM25
     reranked = bm25_rerank(question, docs)
-    answer = generate_answer(question, reranked)
+
+    # Step 3: top 5 docs for answer
+    top_docs_for_answer = reranked[:5]
+    answer = generate_answer(question, top_docs_for_answer)
+
+    # Step 4: prepare docs for UI
+    retrieved_docs = [
+        {
+            "content": d.page_content,
+            "vector_score": d.metadata.get("vector_score"),
+            "bm25_score": d.metadata.get("bm25_score"),
+            "source": d.metadata.get("source", None)
+        }
+        for d in reranked[:5]  # <-- only top 5 for UI
+    ]
 
     return {
         "answer": answer,
         "generated_queries": generated_queries,
-        "sources": [
-            {
-                "vector_score": d.metadata.get("vector_score"),
-                "bm25_score": d.metadata.get("bm25_score")
-            }
-            for d in reranked[:5]
-        ]
+        "retrieved_docs": retrieved_docs
     }
