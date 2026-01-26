@@ -7,15 +7,16 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import BaseOutputParser
 from typing import List
 import os
+from dotenv import load_dotenv
 
 from embedder import embed_novel
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 
 # --- API Keys from Streamlit secrets ---
-import streamlit as st
-OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 # --- LLMs ---
 query_llm = ChatOpenAI(model="gpt-4o-mini", openai_api_key=OPENAI_API_KEY)
@@ -158,3 +159,28 @@ def bm25_rerank(query: str, docs: List[Document]) -> List[Document]:
         ranked_docs.append(doc)
 
     return ranked_docs
+
+# =====================================================
+# FASTAPI ENTRY FUNCTION
+# =====================================================
+def ask_question(question: str, persist_dir: str):
+
+    docs, generated_queries = get_multi_query_docs(
+        user_question=question,
+        persist_dir=persist_dir
+    )
+
+    reranked = bm25_rerank(question, docs)
+    answer = generate_answer(question, reranked)
+
+    return {
+        "answer": answer,
+        "generated_queries": generated_queries,
+        "sources": [
+            {
+                "vector_score": d.metadata.get("vector_score"),
+                "bm25_score": d.metadata.get("bm25_score")
+            }
+            for d in reranked[:5]
+        ]
+    }

@@ -1,9 +1,12 @@
-langchain-community 
+fastapi
+uvicorn
 pymupdf
-langchain-huggingface
-sentence-transformers
 langchain-chroma>=0.1.2
-langchain-openai
+langchain-community
 langchain-google-genai
+langchain-huggingface
+langchain-openai
+requests
 streamlit
 rank_bm25
+sentence-transformers
