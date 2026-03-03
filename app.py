@@ -4,7 +4,7 @@ import streamlit as st
 import requests
 from pathlib import Path
 
-API_URL = "http://127.0.0.1:8001"
+API_URL = "http://127.0.0.1:7860"
 
 st.set_page_config(page_title="Narrative AI", layout="wide")
 st.title("📚 Narrative AI")
