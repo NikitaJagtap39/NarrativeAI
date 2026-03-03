@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# Start FastAPI in background
+uvicorn api:app --host 0.0.0.0 --port 8000 &
+
+# Start Streamlit in foreground (replace shell)
+exec streamlit run app.py --server.port=8501 --server.address=0.0.0.0

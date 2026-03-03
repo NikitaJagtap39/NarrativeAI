@@ -1,0 +1,11 @@
+# test_qdrant.py
+import os
+from dotenv import load_dotenv
+from qdrant_client import QdrantClient
+
+load_dotenv()
+client = QdrantClient(url=os.getenv("QDRANT_URL"), api_key=os.getenv("QDRANT_API_KEY"))
+
+info = client.get_collection("the-great-alone-kristin-hannah")
+print(info)
+print(f"points_count: {info.points_count}")

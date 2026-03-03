@@ -1,12 +1,29 @@
-fastapi
-uvicorn
-pymupdf
-langchain-chroma>=0.1.2
+# Core LangChain
+langchain
+langchain-core
 langchain-community
-langchain-google-genai
 langchain-huggingface
-langchain-openai
-requests
-streamlit
-rank_bm25
+langchain-google-genai
+langchain-qdrant
+
+# Vector DB
+qdrant-client
+
+# Embeddings
+torch
 sentence-transformers
+
+# PDF loading
+pymupdf
+
+# BM25 reranking
+rank-bm25
+
+# API & UI
+fastapi
+uvicorn[standard]
+streamlit
+python-multipart
+
+# Utilities
+python-dotenv
