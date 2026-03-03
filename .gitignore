@@ -2,4 +2,4 @@ venv/
 __pycache__/
 *.pyc
 chromadb/
-.env
+.env.streamlit/secrets.toml
