@@ -2,16 +2,15 @@
 langchain
 langchain-core
 langchain-community
-langchain-huggingface
 langchain-google-genai
 langchain-qdrant
+langchain-voyageai
 
 # Vector DB
 qdrant-client
 
 # Embeddings
-torch
-sentence-transformers
+voyageai
 
 # PDF loading
 pymupdf

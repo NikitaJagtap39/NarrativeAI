@@ -14,9 +14,6 @@ RUN pip install --upgrade pip setuptools wheel
 
 COPY requirements.txt .
 
-# Install CPU-only torch first
-RUN pip install torch --index-url https://download.pytorch.org/whl/cpu
-
 RUN pip install -r requirements.txt
 
 COPY *.py .

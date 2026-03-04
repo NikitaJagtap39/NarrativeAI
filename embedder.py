@@ -5,7 +5,7 @@ from uuid import uuid4
 from dotenv import load_dotenv
 
 from langchain_qdrant import QdrantVectorStore
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_voyageai import VoyageAIEmbeddings
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams
 
@@ -13,18 +13,18 @@ from chunker import chunk_novel
 
 load_dotenv()
 
-QDRANT_URL = os.getenv("QDRANT_URL")         # e.g. https://xyz.qdrant.io:6333
+QDRANT_URL = os.getenv("QDRANT_URL")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
+VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
 
-# BAAI/bge-small-en-v1.5 outputs 384-dimensional vectors
-EMBEDDING_DIM = 384
+# voyage-3-lite outputs 512-dimensional vectors
+EMBEDDING_DIM = 512
 
 
-def get_embeddings(model_name: str = "BAAI/bge-small-en-v1.5", device: str = "cpu") -> HuggingFaceEmbeddings:
-    return HuggingFaceEmbeddings(
-        model_name=model_name,
-        model_kwargs={"device": device},
-        encode_kwargs={"normalize_embeddings": True}
+def get_embeddings() -> VoyageAIEmbeddings:
+    return VoyageAIEmbeddings(
+        voyage_api_key=VOYAGE_API_KEY,
+        model="voyage-3-lite"
     )
 
 
@@ -41,7 +41,6 @@ def _get_qdrant_client() -> QdrantClient:
 def _collection_has_vectors(client: QdrantClient, collection_name: str, retries: int = 3, delay: float = 2.0) -> bool:
     """
     Returns True if the collection exists and already contains points.
-    Uses points_count (not vectors_count) for compatibility with newer qdrant-client versions.
     Retries a few times to handle Qdrant's brief indexing delay after upload.
     """
     import time
@@ -78,18 +77,14 @@ def _ensure_collection(client: QdrantClient, collection_name: str):
 def embed_novel(
     pdf_path: str = None,
     collection_name: str = None,
-    model_name: str = "BAAI/bge-small-en-v1.5",
-    device: str = "cpu"
 ) -> QdrantVectorStore:
     """
-    Embeds a novel PDF into Qdrant Cloud, or loads an existing collection
-    if the novel has already been embedded.
+    Embeds a novel PDF into Qdrant Cloud using Voyage AI embeddings,
+    or loads an existing collection if already embedded.
 
     Args:
         pdf_path:        Path to the PDF file. Required only for first-time embedding.
         collection_name: Qdrant collection name (usually the novel's filename stem).
-        model_name:      HuggingFace embedding model to use.
-        device:          'cpu' or 'cuda'.
 
     Returns:
         A QdrantVectorStore instance ready for similarity search.
@@ -101,7 +96,7 @@ def embed_novel(
     collection_name = collection_name.lower().replace("_", "-").replace(" ", "-")
 
     client = _get_qdrant_client()
-    embeddings = get_embeddings(model_name, device)
+    embeddings = get_embeddings()
 
     _ensure_collection(client, collection_name)
 
@@ -127,7 +122,7 @@ def embed_novel(
     if not chunks:
         raise ValueError("❌ No chunks generated. Check PDF loader / chunker.")
 
-    print(f"✅ {len(chunks)} chunks generated. Uploading to Qdrant...")
+    print(f"✅ {len(chunks)} chunks generated. Uploading in batches...")
 
     vector_store = QdrantVectorStore(
         client=client,
@@ -135,8 +130,13 @@ def embed_novel(
         embedding=embeddings
     )
 
-    ids = [str(uuid4()) for _ in chunks]
-    vector_store.add_documents(chunks, ids=ids)
+    # Process in batches to keep memory flat
+    BATCH_SIZE = 50
+    for i in range(0, len(chunks), BATCH_SIZE):
+        batch = chunks[i:i + BATCH_SIZE]
+        batch_ids = [str(uuid4()) for _ in batch]
+        vector_store.add_documents(batch, ids=batch_ids)
+        print(f"  📤 Uploaded chunks {i+1}–{min(i + BATCH_SIZE, len(chunks))} of {len(chunks)}")
 
-    print(f"✅ Embeddings uploaded to Qdrant collection '{collection_name}' successfully.")
+    print(f"✅ All embeddings uploaded to '{collection_name}' successfully.")
     return vector_store
