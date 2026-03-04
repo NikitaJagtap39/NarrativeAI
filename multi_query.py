@@ -9,21 +9,17 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import BaseOutputParser
 from langchain_core.documents import Document
 from langchain_qdrant import QdrantVectorStore
-from langchain_huggingface import HuggingFaceEmbeddings
 from qdrant_client import QdrantClient
 from rank_bm25 import BM25Okapi
 
 from embedder import embed_novel, get_embeddings, _get_qdrant_client, _collection_has_vectors
 
 load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 # =====================================================
 # LLMs
 # =====================================================
-# Both query generation and answer generation use Gemini
-# so no OpenAI quota is needed
 query_llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash-lite",
     temperature=0,
@@ -80,10 +76,7 @@ Answer:
 # =====================================================
 # RELEVANCE FILTER
 # =====================================================
-# Qdrant with cosine metric returns similarity scores between 0 and 1.
-# Higher = more similar. We discard docs below this threshold to avoid
-# feeding weak/irrelevant context to the LLM — a primary cause of hallucinations.
-SIMILARITY_THRESHOLD = 0.4  # Tune between 0.4–0.7 based on your results
+SIMILARITY_THRESHOLD = 0.4
 
 
 def filter_by_relevance(
@@ -92,8 +85,6 @@ def filter_by_relevance(
 ) -> List[Document]:
     """
     Filters out low-relevance documents below the cosine similarity threshold.
-    Returns an empty list if nothing passes — the caller handles this gracefully
-    rather than sending low-quality context to the LLM.
     """
     filtered = [doc for doc, score in docs_with_scores if score >= threshold]
     rejected = len(docs_with_scores) - len(filtered)
@@ -118,9 +109,6 @@ def get_multi_query_docs(
     """
     Generates multiple query variants, retrieves docs from Qdrant for each,
     applies relevance filtering, and returns deduplicated results.
-
-    Returns:
-        (filtered_docs, generated_queries)
     """
     collection_name = collection_name.lower().replace("_", "-").replace(" ", "-")
     client = _get_qdrant_client()
@@ -129,7 +117,6 @@ def get_multi_query_docs(
     # Embed novel if not already done
     if not _collection_has_vectors(client, collection_name):
         if pdf_path is None:
-            # Upload step failed or didn't complete — return gracefully so UI can show a message
             return [], ["Upload may have failed — please re-upload the PDF and try again."]
         embed_novel(pdf_path=pdf_path, collection_name=collection_name)
 
@@ -172,8 +159,7 @@ def get_multi_query_docs(
 # =====================================================
 def bm25_rerank(query: str, docs: List[Document]) -> List[Document]:
     """
-    Reranks documents by BM25 keyword score. This forms the 'Reversed Hybrid RAG'
-    approach: semantic retrieval first, then lexical reranking.
+    Reranks documents by BM25 keyword score.
     """
     if not docs:
         return []
@@ -220,8 +206,6 @@ def ask_question(question: str, collection_name: str) -> dict:
       2. Relevance filtering
       3. BM25 reranking
       4. Answer generation with grounded prompt
-
-    Returns a dict with answer, generated_queries, and retrieved_docs.
     """
     # Step 1: Retrieve + filter
     docs, generated_queries = get_multi_query_docs(
