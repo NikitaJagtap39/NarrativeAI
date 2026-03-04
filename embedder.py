@@ -24,7 +24,7 @@ EMBEDDING_DIM = 512
 def get_embeddings() -> VoyageAIEmbeddings:
     return VoyageAIEmbeddings(
         voyage_api_key=VOYAGE_API_KEY,
-        model="voyage-3-lite"
+        model="voyage-4-large"
     )
 
 
