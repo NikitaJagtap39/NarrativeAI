@@ -18,7 +18,7 @@ QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
 
 # voyage-3-lite outputs 512-dimensional vectors
-EMBEDDING_DIM = 512
+EMBEDDING_DIM = 1024
 
 
 def get_embeddings() -> VoyageAIEmbeddings:
