@@ -16,11 +16,11 @@ load_dotenv()
 QDRANT_URL = os.getenv("QDRANT_URL")         # e.g. https://xyz.qdrant.io:6333
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 
-# BAAI/bge-base-en-v1.5 outputs 768-dimensional vectors
-EMBEDDING_DIM = 768
+# BAAI/bge-small-en-v1.5 outputs 384-dimensional vectors
+EMBEDDING_DIM = 384
 
 
-def get_embeddings(model_name: str = "BAAI/bge-base-en-v1.5", device: str = "cpu") -> HuggingFaceEmbeddings:
+def get_embeddings(model_name: str = "BAAI/bge-small-en-v1.5", device: str = "cpu") -> HuggingFaceEmbeddings:
     return HuggingFaceEmbeddings(
         model_name=model_name,
         model_kwargs={"device": device},
@@ -78,7 +78,7 @@ def _ensure_collection(client: QdrantClient, collection_name: str):
 def embed_novel(
     pdf_path: str = None,
     collection_name: str = None,
-    model_name: str = "BAAI/bge-base-en-v1.5",
+    model_name: str = "BAAI/bge-small-en-v1.5",
     device: str = "cpu"
 ) -> QdrantVectorStore:
     """
