@@ -76,7 +76,7 @@ Answer:
 # =====================================================
 # RELEVANCE FILTER
 # =====================================================
-SIMILARITY_THRESHOLD = 0.4
+SIMILARITY_THRESHOLD = 0.2
 
 
 def filter_by_relevance(

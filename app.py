@@ -88,8 +88,8 @@ if selected_novel:
                                 vec_score = doc.get("vector_score")
                                 label = f"{vec_score:.4f}" if vec_score is not None else "N/A"
                                 st.markdown(
-                                    f"<div style='background:#d4edda;padding:6px;border-radius:5px;"
-                                    f"text-align:center;font-size:0.85em;'>"
+                                    f"<div style='background:#cce5ff;padding:6px;border-radius:5px;"
+                                    f"text-align:center;font-size:0.85em;color:#000;'>"
                                     f"🔵 Vector Score: <b>{label}</b></div>",
                                     unsafe_allow_html=True
                                 )
@@ -97,8 +97,8 @@ if selected_novel:
                                 bm25_score = doc.get("bm25_score")
                                 label = f"{bm25_score:.4f}" if bm25_score is not None else "N/A"
                                 st.markdown(
-                                    f"<div style='background:#d4edda;padding:6px;border-radius:5px;"
-                                    f"text-align:center;font-size:0.85em;'>"
+                                    f"<div style='background:#ffe8cc;padding:6px;border-radius:5px;"
+                                    f"text-align:center;font-size:0.85em;color:#000;'>"
                                     f"🟠 BM25 Score: <b>{label}</b></div>",
                                     unsafe_allow_html=True
                                 )
