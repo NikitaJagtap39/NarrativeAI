@@ -2,10 +2,10 @@ import os
 from typing import List
 from dotenv import load_dotenv
 
-#Extracting page-level text and converts each page to a Document object 
-from langchain_community.document_loaders import PyMuPDFLoader 
+#Extracting page-level text and converts each page to a Document object
+from langchain_community.document_loaders import PyMuPDFLoader
 #Gemini LLM
-from langchain_google_genai import ChatGoogleGenerativeAI 
+from langchain_google_genai import ChatGoogleGenerativeAI
 #Structured prompt injection (safe + reusable)
 from langchain_core.prompts import PromptTemplate
 
@@ -86,7 +86,7 @@ def format_pages(docs: List, offset: int = 0) -> str:
     for i, doc in enumerate(docs):
         snippet = doc.page_content[:500].replace("\n", " ") #500 characters are enough for semantic signals
         blocks.append(f"[PAGE {offset + i}]: {snippet}")
-    return "\n".join(blocks)    
+    return "\n".join(blocks)
 
 #Loading page-by-page using PyMuPDF
 def extract_clean_story_pages(pdf_path: str) -> List:
@@ -122,7 +122,7 @@ def extract_clean_story_pages(pdf_path: str) -> List:
     # ---- Log skipped front/back pages ----
     if start_idx > 0:
         print(f"❌ Skipped front pages: 0 → {start_idx}")
-    
+
     if end_idx < len(docs) - 1:
         print(f"❌ Skipped back pages: {end_idx + 1} → {len(docs) - 1} ")
 
@@ -139,4 +139,3 @@ def extract_clean_story_pages(pdf_path: str) -> List:
     print(f"\n ✅ Pages kept: {len(cleaned)} ")
 
     return cleaned
-
