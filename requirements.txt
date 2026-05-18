@@ -3,7 +3,7 @@ langchain
 langchain-core
 langchain-community
 langchain-google-genai
-langchain-qdrant
+langchain-qdrant==0.2.0
 langchain-voyageai
 
 # Vector DB
@@ -26,3 +26,4 @@ python-multipart
 
 # Utilities
 python-dotenv
+packaging

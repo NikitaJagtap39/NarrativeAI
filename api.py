@@ -4,7 +4,7 @@ import os
 import shutil
 from pathlib import Path
 
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from pydantic import BaseModel
 
 from embedder import embed_novel
@@ -20,31 +20,27 @@ UPLOAD_TEMP_DIR = "data"
 Path(UPLOAD_TEMP_DIR).mkdir(exist_ok=True)
 
 
-# ----------------------
-# UPLOAD & EMBED
-# ----------------------
+# ✅ Health check endpoint for Docker + EC2
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 @app.post("/upload")
 async def upload_pdf(file: UploadFile = File(...)):
-    """
-    Accepts a PDF upload, embeds it into Qdrant Cloud, and returns
-    the collection name to use for querying.
-    """
-    novel_name = Path(file.filename).stem
-    # Sanitize to match Qdrant collection naming rules
-    collection_name = novel_name.lower().replace("_", "-").replace(" ", "-")
+    # ✅ Validate file type
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
 
+    novel_name = Path(file.filename).stem
+    collection_name = novel_name.lower().replace("_", "-").replace(" ", "-")
     pdf_path = os.path.join(UPLOAD_TEMP_DIR, file.filename)
 
     try:
-        # Save uploaded file temporarily
         with open(pdf_path, "wb") as f:
             shutil.copyfileobj(file.file, f)
-
-        # embed_novel handles the "already embedded" check internally
         embed_novel(pdf_path=pdf_path, collection_name=collection_name)
-
     finally:
-        # Always clean up the temp PDF after embedding
         if os.path.exists(pdf_path):
             os.remove(pdf_path)
 
@@ -55,9 +51,6 @@ async def upload_pdf(file: UploadFile = File(...)):
     }
 
 
-# ----------------------
-# QUERY
-# ----------------------
 class QueryRequest(BaseModel):
     question: str
     collection_name: str
@@ -65,9 +58,6 @@ class QueryRequest(BaseModel):
 
 @app.post("/query")
 def query_rag(req: QueryRequest):
-    """
-    Runs the full RAG pipeline for a given question and Qdrant collection.
-    """
     result = ask_question(
         question=req.question,
         collection_name=req.collection_name

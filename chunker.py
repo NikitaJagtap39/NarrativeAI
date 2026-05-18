@@ -21,5 +21,3 @@ def chunk_novel(pdf_path: str, chunk_size: int = 1000, overlap: int =150):
 
     #Split the document objects into chunks
     chunks = splitter.split_documents(docs)
-
-    return chunks

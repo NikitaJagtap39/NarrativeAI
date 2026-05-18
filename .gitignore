@@ -1,5 +1,22 @@
 venv/
 __pycache__/
 *.pyc
+
+# Environment variables / secrets
+.env
+.env.*
+.streamlit/secrets.toml
+
+# Data folders
+data/
 chromadb/
-.env.streamlit/secrets.toml
+
+# Docker
+.dockerignore
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,24 +1,18 @@
 # app.py
 
+import os
 import streamlit as st
 import requests
 from pathlib import Path
 
-API_URL = "http://127.0.0.1:8001"
+API_URL = os.getenv("API_URL", "http://localhost:8000")  # ✅ Fixed port + env-driven
 
 st.set_page_config(page_title="Narrative AI", layout="wide")
 st.title("📚 Narrative AI")
 
-# ===========================
-# SESSION STATE
-# ===========================
 if "novels" not in st.session_state:
-    # Each entry: {"display_name": str, "collection_name": str}
     st.session_state["novels"] = []
 
-# ===========================
-# UPLOAD
-# ===========================
 uploaded_file = st.file_uploader("Upload a book (PDF)", type=["pdf"])
 
 if uploaded_file:
@@ -31,7 +25,7 @@ if uploaded_file:
         st.info("This novel is already in your library.")
     else:
         with st.status("Processing PDF... this may take a minute ⏳"):
-            r = requests.post(f"{API_URL}/upload", files={"file": uploaded_file})
+            r = requests.post(f"{API_URL}/upload", files={"file": (uploaded_file.name, uploaded_file, "application/pdf")})
 
             if r.status_code == 200:
                 data = r.json()
@@ -43,9 +37,6 @@ if uploaded_file:
             else:
                 st.error(f"Upload failed: {r.text}")
 
-# ===========================
-# SIDEBAR — LIBRARY
-# ===========================
 st.sidebar.header("📖 Library")
 
 if not st.session_state["novels"]:
@@ -59,9 +50,6 @@ else:
         None
     )
 
-# ===========================
-# Q&A SECTION
-# ===========================
 if selected_novel:
     st.header(f"💬 Q&A: {selected_novel['display_name']}")
     user_question = st.text_input("Ask a question about the book:")
@@ -77,11 +65,9 @@ if selected_novel:
             if r.status_code == 200:
                 data = r.json()
 
-                # ---- Answer ----
                 st.subheader("🤖 Answer")
                 st.write(data["answer"])
 
-                # ---- Retrieval Details ----
                 with st.expander("🔍 Retrieval Details"):
                     st.markdown("**Generated Query Variants:**")
                     for i, q in enumerate(data.get("generated_queries", []), 1):

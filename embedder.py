@@ -17,7 +17,7 @@ QDRANT_URL = os.getenv("QDRANT_URL")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
 
-# voyage-3-lite outputs 512-dimensional vectors
+# voyage-4-large outputs 1024-dimensional vectors
 EMBEDDING_DIM = 1024
 
 
